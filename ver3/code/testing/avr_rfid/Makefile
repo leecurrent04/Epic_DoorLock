@@ -10,7 +10,6 @@ all:
 
 flash:
 	avrdude -v -p ${MCU} -c arduino -U flash:w:./out/main.hex:i -P ${PORT}
-	#avrdude -C/home/whale/.arduino15/packages/MiniCore/hardware/avr/2.1.3/avrdude.conf -v -patmega168p -carduino -P/dev/ttyUSB0 -b115200 -D -Uflash:w:/tmp/arduino_build_797755/sketch_may08a.ino.hex:i
 
 clean:
 	rm -f ./out/*.o ./out/*.hex
