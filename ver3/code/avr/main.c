@@ -2,20 +2,20 @@
 #include <avr/io.h>
 #include <util/delay.h>
 #include <avr/wdt.h>
-// #include <stdio.h>
 #include "./include/PCB_pin.h"
 
 // RFID MFRC522
 #include "./include/spi.h"
 #include "./include/mfrc522.h"
 
-// TEST용 UART
+// TEST용 UART 관련 라이브러리
 // #include "./include/UART.h"
+// #include <stdio.h>
 
-// 관리자 key의 갯수. 반드시 수정할 것!
+// 관리자 key의 개수. 주의 요망!
 #define cardAdmin_Num 1
 uint8_t cardAdmin_UID[cardAdmin_Num][4] = {
-	{0x00,0x00,0x00,0x00}
+        {0x00, 0x00, 0x00, 0x00},
 };
 
 // mfc522
@@ -23,28 +23,22 @@ uint8_t byte;
 uint8_t str[MAX_LEN];
 
 int main(void){
-    DDRC=0x0F;                          // LED, Buzzer
-    DDRD=0x20;                          // Servo
+    DDRC=0x0F;          // LED, Buzzer
+    DDRD=0x20;          // Servo
 
-    PORTC|=BUZZ_C3;
+    PORTC|=BUZZ_C3;     // 점검용 부저 켜기
 
-    // UART_INIT();                     // UART
-    doorState=0b00;                     // door
-    btnPressed=0b000;                   // btn 기록
+    // UART_INIT();     // UART
+    doorState=0b00;     // 문 동작 관련 상태 변수. md 파일 참고
+    btnPressed=0b000;   // 버튼 눌림 관련 상태 변수. md 파일 참고
 
     // 문 닫기
-    for(int i=0;i<Servo_PulseNum;i++){
-        PORTD |= ServoPin;
-        _delay_ms(Servo_Close1s);
-        PORTD &= ~ServoPin;
-        _delay_ms(Servo_Close0s);
-    }
+    doorClose();
 
-    spi_init();
-    _delay_ms(100);
+    spi_init();         // SPI 작동
+    _delay_ms(50);
 
-    //init reader
-    mfrc522_init();
+    mfrc522_init();     // rfid 리더기 연결
 
     // RFID 작동 안하면 리셋
     byte = mfrc522_read(VersionReg);
@@ -56,13 +50,14 @@ int main(void){
     byte = mfrc522_read(DivIEnReg);
     mfrc522_write(DivIEnReg,byte|0x80);
 
-    //TWI
+    // I2C 작동(EEPROM)
     TWCR = (1<<TWEN);
-    TWBR = 12;    //400khz
+    TWBR = 12;          //400khz
+
     // EEPROM 0,1번에서 1byte 씩 가져와 2byte 값으로
     uint16_t card_Num = AT24C_read_byte(0)<<8|AT24C_read_byte(1);
 
-    PORTC &= ~BUZZ_C3;
+    PORTC &= ~BUZZ_C3;  // 점검용 부저 끄기
 
     while(1){
         // RFID 인식 안되면 리셋
@@ -73,33 +68,21 @@ int main(void){
         //==============================
         // 문 열기 버튼이 눌렸을 때
         if( (PIND&BTN_D2)!=BTN_D2 ){
-            // 기존에 버튼이 눌리지 않았다면 (채터링 현상 방지)
+            // 버튼이 처음 눌리면 (채터링 현상 방지)
             if(!( (btnPressed&0b100) >>2) ) {
-                btnPressed |= 0b100;
+                btnPressed |= 0b100;    // 버튼 상태 변수를 변경
 
                 // 문열기
                 if( (PIND&D_BTN_D6)!=D_BTN_D6 && doorState == 0b00 ){
                     doorState = 0b11;
-
-                    for(int i=0;i<Servo_PulseNum;i++){
-                        PORTD |= ServoPin;
-                        _delay_ms(Servo_Open1s);
-                        PORTD &= ~ServoPin;
-                        _delay_ms(Servo_Open0s);
-                    }
-
-                    // Buzzer
-                    PORTC |= BUZZ_C3;
-                    _delay_ms(BuzzerTime);
-                    PORTC &= ~BUZZ_C3;
-
+                    doorOpen();
                 }
             }
         }
         else{
-            // 만약 기존에 버튼이 눌렸었다면
+            // 버튼에서 손을 때면
             if((btnPressed&0b100)>>2){
-                btnPressed&=0b011;
+                btnPressed&=0b011;      // 초기 상태로 변경
                 _delay_ms(BtnDTime);
             }
         }
@@ -120,9 +103,9 @@ int main(void){
                 uint8_t exitState = 0;
                 // 관리자 권한 카드 인식 될 때까지 대기
                 while (0 != checkRFID(1,card_Num)) {
-                    // 카드 최대 개수
-                    // (497+1)*4+3
-                    if(card_Num>=497){
+                    // 카드 최대 개수(2^16=65536, addr: 0~65535)
+                    // (65536−4)÷4=16383
+                    if(card_Num>=16383){
                         PORTC |= BUZZ_C3|LED_C0|LED_C1;
                         _delay_ms(BuzzerTime);
                         PORTC &= ~(BUZZ_C3|LED_C0|LED_C1);
@@ -163,7 +146,7 @@ int main(void){
                 PORTC &= ~BUZZ_C3;
 
                 uint16_t aUID[4] = {0,};      // UID 값을 읽기 위한 메모리
-                uint8_t breakState;       // 이중 반복문을 나가기 위한 변수
+                uint8_t breakState;           // 이중 반복문을 나가기 위한 변수
 
                 // 카드 등록할 때까지 대기
                 while (1) {
@@ -174,7 +157,7 @@ int main(void){
                         // 관리자 카드가 아니면 break
                         for (int i = 0; i < cardAdmin_Num; i++) {
                             if ((cardAdmin_UID[i][0] == aUID[0]) && (cardAdmin_UID[i][1] == aUID[1])
-                            && (cardAdmin_UID[i][2] == aUID[2])&& (cardAdmin_UID[i][3] == aUID[3])) {
+                                && (cardAdmin_UID[i][2] == aUID[2]) && (cardAdmin_UID[i][3] == aUID[3])) {
                                 breakState = 0;
                                 break;
                             }
@@ -271,42 +254,17 @@ int main(void){
         if( (PIND&D_BTN_D6)!=D_BTN_D6 ) {
             // 만약 문이 닫인 상황에서 카드가 인증되면
             if (!checkRFID(0,card_Num)) {
-                // 문 열기
-                if( (PIND&D_BTN_D6)!=D_BTN_D6 && doorState == 0b00 ){
+                // 문이 닫혀 있었다면 문 열기
+                if (doorState == 0b00) {
                     doorState = 0b11;
-
-                    for(int i=0;i<Servo_PulseNum;i++){
-                        PORTD |= ServoPin;
-                        _delay_ms(Servo_Open1s);
-                        PORTD &= ~ServoPin;
-                        _delay_ms(Servo_Open0s);
-                    }
-
-                    // Buzzer
-                    PORTC |= BUZZ_C3;
-                    _delay_ms(BuzzerTime);
-                    PORTC &= ~BUZZ_C3;
-
+                    doorOpen();
                 }
-                continue;
             }
 
             // 만약 문을 닫았다면
             if(doorState==0b10) {
-                doorState = 0b00;      // 초기 상태
-
-                // 문 닫기
-                for(int i=0;i<Servo_PulseNum;i++){
-                    PORTD |= ServoPin;
-                    _delay_ms(Servo_Close1s);
-                    PORTD &= ~ServoPin;
-                    _delay_ms(Servo_Close0s);
-                }
-
-                // Buzzer
-                PORTC |= BUZZ_C3;
-                _delay_ms(BuzzerTime);
-                PORTC &= ~BUZZ_C3;
+                doorState = 0b00;   // 초기 상태
+                doorClose();        // 문 닫기
             }
         }
             // 만약 문을 열었다면
@@ -319,7 +277,7 @@ int main(void){
     return 0;
 }
 
-// 카드를 확인하는 함수(1-Admin only, return 1:error)
+// 카드를 확인하는 함수 (1-Admin only, return 1: error)
 uint8_t checkRFID(uint8_t boolAdmin,uint16_t card_Num){
     byte = mfrc522_request(PICC_REQALL,str);
 
@@ -329,7 +287,7 @@ uint8_t checkRFID(uint8_t boolAdmin,uint16_t card_Num){
             // 관리자 카드 검사
             for(uint8_t n=0; n<cardAdmin_Num;n++){
                 if( (str[0]==cardAdmin_UID[n][0]) && (str[1]==cardAdmin_UID[n][1]) &&
-                (str[2]==cardAdmin_UID[n][2]) && (str[3]==cardAdmin_UID[n][3]) ){
+                    (str[2]==cardAdmin_UID[n][2]) && (str[3]==cardAdmin_UID[n][3]) ){
                     return 0;
                 }
             }
@@ -348,7 +306,7 @@ uint8_t checkRFID(uint8_t boolAdmin,uint16_t card_Num){
     return 1;
 }
 
-// RFID UID 값을 읽어오는 함수.
+// RFID UID 값을 읽어오는 함수 (return 1: error)
 // 포인터 주소 필요함.
 uint8_t readRFID(uint16_t *tempUID0,uint16_t *tempUID1,uint16_t *tempUID2,uint16_t *tempUID3) {
     byte = mfrc522_request(PICC_REQALL, str);
@@ -368,8 +326,37 @@ uint8_t readRFID(uint16_t *tempUID0,uint16_t *tempUID1,uint16_t *tempUID2,uint16
     return 1;
 }
 
-unsigned char AT24C_write_byte(unsigned int addr,unsigned char data)
-{
+void doorOpen() {
+    for (int i = 0; i < Servo_PulseNum; i++) {
+        PORTD |= ServoPin;
+        _delay_ms(Servo_Open1s);
+        PORTD &= ~ServoPin;
+        _delay_ms(Servo_Open0s);
+    }
+
+    // Buzzer
+    PORTC |= BUZZ_C3;
+    _delay_ms(BuzzerTime);
+    PORTC &= ~BUZZ_C3;
+}
+
+void doorClose(){
+    // 문 닫기
+    for(int i=0;i<Servo_PulseNum;i++){
+        PORTD |= ServoPin;
+        _delay_ms(Servo_Close1s);
+        PORTD &= ~ServoPin;
+        _delay_ms(Servo_Close0s);
+    }
+
+    // Buzzer
+    PORTC |= BUZZ_C3;
+    _delay_ms(BuzzerTime);
+    PORTC &= ~BUZZ_C3;
+
+}
+
+unsigned char AT24C_write_byte(unsigned int addr,unsigned char data){
     // Byte write
     // START
     TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
@@ -390,22 +377,21 @@ unsigned char AT24C_write_byte(unsigned int addr,unsigned char data)
     TWCR = (1<<TWINT)|(1<<TWEN);            //전송
     while(!(TWCR & (1<<TWINT)));
 
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);    //STOP
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO); //STOP
 
     return 1;
 }
 
-unsigned char AT24C_read_byte(unsigned int addr)
-{
+unsigned char AT24C_read_byte(unsigned int addr){
     unsigned char data;
 
     //Random read
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);    //START
+    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); //START
     while(!(TWCR & (1<<TWINT)));
 
     //[device addr (0b10100000)] + [11bit addr (상위 3자리)] + [W:0]
     TWDR = 0xA0 | ((addr>>7) & 0x000E);
-    TWCR = (1<<TWINT)|(1<<TWEN);        //전송
+    TWCR = (1<<TWINT)|(1<<TWEN);            //전송
     while(!(TWCR & (1<<TWINT)));
 
     //[11bit addr (하위 8자리)]
@@ -413,7 +399,7 @@ unsigned char AT24C_read_byte(unsigned int addr)
     TWCR = (1<<TWINT)|(1<<TWEN);            //전송
     while(!(TWCR & (1<<TWINT)));
 
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);    //START
+    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); //START
     while(!(TWCR & (1<<TWINT)));
 
     //[device addr (0b10100000)] + [11bit addr (상위 3자리)] + [R:1]
@@ -425,7 +411,7 @@ unsigned char AT24C_read_byte(unsigned int addr)
     while(!(TWCR & (1<<TWINT)));
 
     data = TWDR;                            //data 읽기
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO);    //STOP
+    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO); //STOP
 
     return data;
 }
