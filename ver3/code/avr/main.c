@@ -329,9 +329,9 @@ uint8_t readRFID(uint16_t *tempUID0,uint16_t *tempUID1,uint16_t *tempUID2,uint16
 void doorOpen() {
     for (int i = 0; i < Servo_PulseNum; i++) {
         PORTD |= ServoPin;
-        _delay_ms(Servo_Open1s);
+        _delay_ms(2.5);
         PORTD &= ~ServoPin;
-        _delay_ms(Servo_Open0s);
+        _delay_ms(17.5);
     }
 
     // Buzzer
@@ -344,16 +344,15 @@ void doorClose(){
     // 문 닫기
     for(int i=0;i<Servo_PulseNum;i++){
         PORTD |= ServoPin;
-        _delay_ms(Servo_Close1s);
+        _delay_ms(1.5);
         PORTD &= ~ServoPin;
-        _delay_ms(Servo_Close0s);
+        _delay_ms(18.5);
     }
 
     // Buzzer
     PORTC |= BUZZ_C3;
     _delay_ms(BuzzerTime);
     PORTC &= ~BUZZ_C3;
-
 }
 
 unsigned char AT24C_write_byte(unsigned int addr,unsigned char data){

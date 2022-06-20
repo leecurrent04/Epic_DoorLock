@@ -1,5 +1,6 @@
 //
-// Created by whale on 22. 5. 8.
+// Created by leecurrent04 on 22. 5. 8.
+// 허경용, 「아트멜 스튜디오와 아두이노로 배우는 ATmega328 프로그래밍」 (제이펍, 2015), 147-173.
 //
 
 #include "../include/UART.h"

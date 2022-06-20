@@ -18,11 +18,6 @@
 #define BuzzerTime 500
 #define BtnDTime 100
 
-// 1s+0s = 20
-#define Servo_Open1s 2.5
-#define Servo_Open0s 17.5
-#define Servo_Close1s 1.5
-#define Servo_Close0s 18.5
 #define Servo_PulseNum 20
 
 uint8_t doorState;
