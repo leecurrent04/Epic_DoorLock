@@ -103,9 +103,9 @@ int main(void){
                 uint8_t exitState = 0;
                 // 관리자 권한 카드 인식 될 때까지 대기
                 while (0 != checkRFID(1,card_Num)) {
-                    // 카드 최대 개수(2^16=65536, addr: 0~65535)
-                    // (65536−4)÷4=16383
-                    if(card_Num>=16383){
+                    // 카드 최대 개수(2Kbyte, addr: 0~2048)
+                    // 2048÷4-1=511
+                    if(card_Num>=511){
                         PORTC |= BUZZ_C3|LED_C0|LED_C1;
                         _delay_ms(BuzzerTime);
                         PORTC &= ~(BUZZ_C3|LED_C0|LED_C1);
@@ -164,7 +164,7 @@ int main(void){
 
                         }
                         // 기존에 등록된 카드가 아니면 break
-                        for (int i = 0; i < card_Num; i++) {
+                        for (uint16_t i = 0; i < card_Num; i++) {
                             if ((AT24C_read_byte(4*(i+1)) == aUID[0]) && (AT24C_read_byte(4*(i+1)+1) == aUID[1])
                                 && (AT24C_read_byte(4*(i+1)+2) == aUID[2])&& (AT24C_read_byte(4*(i+1)+3) == aUID[3])) {
                                 breakState = 0;

@@ -3,6 +3,7 @@ PORT=/dev/ttyUSB0		# SET YOUR PORT
 OBJ_FILES=./lib/*
 BaudRate=115200
 PROGRAMMER=arduino
+#PROGRAMMER=usbtiny
 
 all:
 	@echo "" && date
