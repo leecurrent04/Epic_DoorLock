@@ -1,17 +1,18 @@
-***수정중***
-<br>
-
 # EPIC Door Lock Project
+
+![img](./ver3/guide/3d_model.png)
 
 ## 1. 프로젝트 소개
 
-Hello world!
+연초고등학교 EPIC 동아리(2021~2022) 에서 교내 학생들의 자발적인 탐구 활동을 장려하기 위해 진행한 프로젝트 입니다.
+
 <br>
 
 
 ## 2. 다운로드
 
-Download
+***수정중***
+
 <br>
 
 
