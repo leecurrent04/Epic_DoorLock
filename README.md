@@ -80,7 +80,7 @@ Makefile을 이용하여 컴파일하는 경우, Makefile과 같은 위치에 `o
     [Makefile](https://github.com/leecurrent04/Epic_DoorLock/blob/main/ver3/code/avr/Makefile) 의 2, 4, 5번째 줄을 환경에 맞게 편집합니다.<br>
 
     ```makefile
-    PORT=/dev/ttyUSB0		# SET YOUR PORT
+    PORT=/dev/ttyUSB0       # SET YOUR PORT
     OBJ_FILES=./lib/*
     BaudRate=115200         # SET BuadRate
     PROGRAMMER=arduino      # SET Programmer
@@ -103,8 +103,9 @@ Makefile을 이용하여 컴파일하는 경우, Makefile과 같은 위치에 `o
 
 ### 2. Windows & Mac
 
-[Microship AVR GCC Compiler](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio/gcc-compilers) 를 사용하여 Linux와 같은 과정을 따르거나, ATMEL Studio를 사용하십시오. <br>
-자세한 과정은 <아트멜 스튜디오와 아두이노로 배우는 ATmega328 프로그래밍(허경용)> 도서를 참고하십시오.(이 프로젝트는 ATmega168p을 사용하였으므로, 업로드 과정에서 유의)
+[Microchip AVR GCC Compiler](https://www.microchip.com/en-us/tools-resources/develop/microchip-studio/gcc-compilers) 를 사용하여 Linux와 같은 과정을 따르거나, ATMEL Studio를 사용하십시오. <br>
+자세한 과정은 『아트멜 스튜디오와 아두이노로 배우는 ATmega328 프로그래밍(허경용)』 도서를 참고하십시오.<br>
+(이 프로젝트는 ATmega168p을 사용하였으므로, 업로드 과정에서 유의)
 <br><br>
 
 
