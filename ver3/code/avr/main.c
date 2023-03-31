@@ -29,8 +29,8 @@ int main(void){
     PORTC|=BUZZ_C3;     // 점검용 부저 켜기
 
     // UART_INIT();     // UART
-    doorState=0b00;     // 문 동작 관련 상태 변수. md 파일 참고
-    btnPressed=0b000;   // 버튼 눌림 관련 상태 변수. md 파일 참고
+    doorState=0b00;     // 문 동작 관련 상태 변수. memo.md 파일 참고
+    btnPressed=0b000;   // 버튼 눌림 관련 상태 변수. memo.md 파일 참고
 
     // 문 닫기
     doorClose();
@@ -68,7 +68,7 @@ int main(void){
         //==============================
         // 문 열기 버튼이 눌렸을 때
         if( (PIND&BTN_D2)!=BTN_D2 ){
-            // 버튼이 처음 눌리면 (채터링 현상 방지)
+            // 버튼이 처음 눌리면)
             if(!( (btnPressed&0b100) >>2) ) {
                 btnPressed |= 0b100;    // 버튼 상태 변수를 변경
 
@@ -233,7 +233,7 @@ int main(void){
                 }
                 if(exitState) continue;
 
-                // 카드 개수 초기화
+                // 카드 갯수 초기화
                 card_Num = 0;
                 AT24C_write_byte(0,card_Num>>8);
                 _delay_ms(10);
@@ -269,7 +269,7 @@ int main(void){
         }
             // 만약 문을 열었다면
         else {
-            // 문열림 버튼 상태를 누른 상태
+            // 문열림 버튼 상태를 변경
             if(doorState==0b11)
                 doorState=0b10;
         }
@@ -277,7 +277,12 @@ int main(void){
     return 0;
 }
 
-// 카드를 확인하는 함수 (1-Admin only, return 1: error)
+
+/*
+ *  카드를 확인하는 함수
+ *  boolAdmin) 1: Admin only, 0: All
+ *  return) 1: Error, 0: Pass
+ */
 uint8_t checkRFID(uint8_t boolAdmin,uint16_t card_Num){
     byte = mfrc522_request(PICC_REQALL,str);
 
@@ -308,7 +313,7 @@ uint8_t checkRFID(uint8_t boolAdmin,uint16_t card_Num){
 
 // RFID UID 값을 읽어오는 함수 (return 1: error)
 // 포인터 주소 필요함.
-uint8_t readRFID(uint16_t *tempUID0,uint16_t *tempUID1,uint16_t *tempUID2,uint16_t *tempUID3) {
+uint8_t readRFID(uint16_t *tempUID0, uint16_t *tempUID1, uint16_t *tempUID2, uint16_t *tempUID3) {
     byte = mfrc522_request(PICC_REQALL, str);
     if (byte == CARD_FOUND) {
 
