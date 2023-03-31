@@ -1,8 +1,8 @@
 MCU=atmega168p
 PORT=/dev/ttyUSB0		# SET YOUR PORT
 OBJ_FILES=./lib/*
-BaudRate=115200
-PROGRAMMER=arduino
+BaudRate=115200			# SET YOUR BaudRate
+PROGRAMMER=arduino		# SET YOUR Programmer
 #PROGRAMMER=usbtiny
 
 all:
