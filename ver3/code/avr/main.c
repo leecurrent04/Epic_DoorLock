@@ -8,62 +8,22 @@
 #include "./include/spi.h"
 #include "./include/mfrc522.h"
 
-// TEST용 UART 관련 라이브러리
-// #include "./include/UART.h"
-// #include <stdio.h>
-
 // 관리자 key의 개수. 주의 요망!
 #define cardAdmin_Num 1
 uint8_t cardAdmin_UID[cardAdmin_Num][4] = {
-        {0x00, 0x00, 0x00, 0x00},
+        {0x00, 0x00, 0x00, 0x00}
 };
 
-// mfc522
-uint8_t byte;
-uint8_t str[MAX_LEN];
 
 int main(void){
-    DDRC=0x0F;          // LED, Buzzer
-    DDRD=0x20;          // Servo
-
-    PORTC|=BUZZ_C3;     // 점검용 부저 켜기
-
-    // UART_INIT();     // UART
-    doorState=0b00;     // 문 동작 관련 상태 변수. memo.md 파일 참고
-    btnPressed=0b000;   // 버튼 눌림 관련 상태 변수. memo.md 파일 참고
-
-    // 문 닫기
-    doorClose();
-
-    spi_init();         // SPI 작동
-    _delay_ms(50);
-
-    mfrc522_init();     // rfid 리더기 연결
-
-    // RFID 작동 안하면 리셋
-    byte = mfrc522_read(VersionReg);
-    if(byte != 0x92)
-        wdt_reset();
-
-    byte = mfrc522_read(ComIEnReg);
-    mfrc522_write(ComIEnReg,byte|0x20);
-    byte = mfrc522_read(DivIEnReg);
-    mfrc522_write(DivIEnReg,byte|0x80);
-
-    // I2C 작동(EEPROM)
-    TWCR = (1<<TWEN);
-    TWBR = 12;          //400khz
-
-    // EEPROM 0,1번에서 1byte 씩 가져와 2byte 값으로
-    uint16_t card_Num = AT24C_read_byte(0)<<8|AT24C_read_byte(1);
-
-    PORTC &= ~BUZZ_C3;  // 점검용 부저 끄기
+    board_setup();
 
     while(1){
         // RFID 인식 안되면 리셋
         byte = mfrc522_read(VersionReg);
-        if(byte != 0x92)
+        if(byte != 0x92) {
             wdt_reset();
+        }
 
         //==============================
         // 문 열기 버튼이 눌렸을 때
@@ -121,12 +81,10 @@ int main(void){
                             btnPressed |= 0b010;
 
                             // Buzzer
-                            PORTC |= BUZZ_C3;
-                            _delay_ms(BuzzerTime);
-                            PORTC &= ~BUZZ_C3;
+                            beep_buzzer();
+                            PORTC &= ~LED_C1;
 
                             exitState = 1;
-                            PORTC &= ~LED_C1;
                         }
                     }
                     else {
@@ -138,12 +96,12 @@ int main(void){
                         }
                     }
                 }
-                if (exitState) continue;     // 나가기
+                if (exitState){
+                    continue;     // 나가기
+                }
 
-                // Buzzer 1second
-                PORTC |= BUZZ_C3;
-                _delay_ms(BuzzerTime);
-                PORTC &= ~BUZZ_C3;
+                // Buzzer
+                beep_buzzer();
 
                 uint16_t aUID[4] = {0,};      // UID 값을 읽기 위한 메모리
                 uint8_t breakState;           // 이중 반복문을 나가기 위한 변수
@@ -172,7 +130,9 @@ int main(void){
                             }
 
                         }
-                        if (breakState) break;
+                        if (breakState){
+                            break;
+                        }
                     }
                 }
 
@@ -188,11 +148,8 @@ int main(void){
                 AT24C_write_byte(1,card_Num&0xFF);
                 _delay_ms(10);
 
-                // Buzzer 1second
-                PORTC |= BUZZ_C3;
-                _delay_ms(BuzzerTime);
-                PORTC &= ~BUZZ_C3;
-
+                // Buzzer
+                beep_buzzer();
                 PORTC &= ~LED_C1;
             }
         }
@@ -216,12 +173,10 @@ int main(void){
                         btnPressed|=0b001;
 
                         // Buzzer
-                        PORTC |= BUZZ_C3;
-                        _delay_ms(BuzzerTime);
-                        PORTC &= ~BUZZ_C3;
+                        beep_buzzer();
+                        PORTC &= ~LED_C2;
 
                         exitState = 1;
-                        PORTC &= ~LED_C2;
                     }
                     else{
                         if(btnPressed&0b001){
@@ -231,7 +186,9 @@ int main(void){
                         }
                     }
                 }
-                if(exitState) continue;
+                if(exitState) {
+                    continue;
+                }
 
                 // 카드 갯수 초기화
                 card_Num = 0;
@@ -241,11 +198,8 @@ int main(void){
                 _delay_ms(10);
 
                 // Buzzer
-                PORTC |= BUZZ_C3;
-                _delay_ms(BuzzerTime);
-                PORTC &= ~BUZZ_C3;
-
-                PORTC&=~LED_C2;
+                beep_buzzer();
+                PORTC &= ~LED_C2;
             }
         }
 
@@ -275,6 +229,54 @@ int main(void){
         }
     }
     return 0;
+}
+
+
+void board_setup(void){
+    DDRC = 0x0F;          // LED, Buzzer
+    DDRD = 0x20;          // Servo
+
+    PORTC |= BUZZ_C3;     // 점검용 부저 켜기
+
+    // UART_INIT();     // UART
+    doorState = 0b00;     // 문 동작 관련 상태 변수. memo.md 파일 참고
+    btnPressed = 0b000;   // 버튼 눌림 관련 상태 변수. memo.md 파일 참고
+
+    // 문 닫기
+    doorClose();
+
+    spi_init();         // SPI 작동
+    _delay_ms(50);
+
+    mfrc522_init();     // rfid 리더기 연결
+
+    // RFID 작동 안하면 리셋
+    byte = mfrc522_read(VersionReg);
+    if(byte != 0x92) {
+        wdt_reset();
+    }
+
+    byte = mfrc522_read(ComIEnReg);
+    mfrc522_write(ComIEnReg,byte|0x20);
+    byte = mfrc522_read(DivIEnReg);
+    mfrc522_write(DivIEnReg,byte|0x80);
+
+    // I2C 작동(EEPROM)
+    TWCR = (1<<TWEN);
+    TWBR = 12;          //400khz
+
+    // EEPROM 0,1번에서 1byte 씩 가져와 2byte 값으로
+    card_Num = AT24C_read_byte(0)<<8|AT24C_read_byte(1);
+
+    PORTC &= ~BUZZ_C3;  // 점검용 부저 끄기
+    return;
+}
+
+void beep_buzzer(void){
+    PORTC |= BUZZ_C3;
+    _delay_ms(BuzzerTime);
+    PORTC &= ~BUZZ_C3;
+    return;
 }
 
 
@@ -340,12 +342,11 @@ void doorOpen() {
     }
 
     // Buzzer
-    PORTC |= BUZZ_C3;
-    _delay_ms(BuzzerTime);
-    PORTC &= ~BUZZ_C3;
+    beep_buzzer();
+    return;
 }
 
-void doorClose(){
+void doorClose(void){
     // 문 닫기
     for(int i=0;i<Servo_PulseNum;i++){
         PORTD |= ServoPin;
@@ -355,67 +356,7 @@ void doorClose(){
     }
 
     // Buzzer
-    PORTC |= BUZZ_C3;
-    _delay_ms(BuzzerTime);
-    PORTC &= ~BUZZ_C3;
+    beep_buzzer();
+    return;
 }
 
-unsigned char AT24C_write_byte(unsigned int addr,unsigned char data){
-    // Byte write
-    // START
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN);
-    while(!(TWCR & (1<<TWINT)));            //TWINT flag 기다림
-
-    //[device addr (0b10100000)] + [11bit addr (상위 3자리)] + [W:0]
-    TWDR = 0xA0 | ((addr>>7) & 0x000E);
-    TWCR = (1<<TWINT)|(1<<TWEN);            //전송
-    while(!(TWCR & (1<<TWINT)));
-
-    //[11bit addr (하위 8자리)]
-    TWDR = 0x00ff & (addr);
-    TWCR  =(1<<TWINT)|(1<<TWEN);            //전송
-    while(!(TWCR & (1<<TWINT)));
-
-    //data 쓰기
-    TWDR = data;
-    TWCR = (1<<TWINT)|(1<<TWEN);            //전송
-    while(!(TWCR & (1<<TWINT)));
-
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO); //STOP
-
-    return 1;
-}
-
-unsigned char AT24C_read_byte(unsigned int addr){
-    unsigned char data;
-
-    //Random read
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); //START
-    while(!(TWCR & (1<<TWINT)));
-
-    //[device addr (0b10100000)] + [11bit addr (상위 3자리)] + [W:0]
-    TWDR = 0xA0 | ((addr>>7) & 0x000E);
-    TWCR = (1<<TWINT)|(1<<TWEN);            //전송
-    while(!(TWCR & (1<<TWINT)));
-
-    //[11bit addr (하위 8자리)]
-    TWDR = 0x00ff & (addr);
-    TWCR = (1<<TWINT)|(1<<TWEN);            //전송
-    while(!(TWCR & (1<<TWINT)));
-
-    TWCR = (1<<TWINT)|(1<<TWSTA)|(1<<TWEN); //START
-    while(!(TWCR & (1<<TWINT)));
-
-    //[device addr (0b10100000)] + [11bit addr (상위 3자리)] + [R:1]
-    TWDR = 0xA0 | ((addr>>7) & 0x0E) | 0x01;
-    TWCR = (1<<TWINT)|(1<<TWEN);            //전송
-    while(!(TWCR & (1<<TWINT)));
-
-    TWCR = (1<<TWINT)|(1<<TWEN);            //전송
-    while(!(TWCR & (1<<TWINT)));
-
-    data = TWDR;                            //data 읽기
-    TWCR = (1<<TWINT)|(1<<TWEN)|(1<<TWSTO); //STOP
-
-    return data;
-}
